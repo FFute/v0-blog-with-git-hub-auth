@@ -14,15 +14,15 @@ export function MarkdownRenderer({ content, owner, repo }: MarkdownRendererProps
   const html = useMemo(() => {
     const renderer = new marked.Renderer()
 
-    // Override image rendering
-    renderer.image = (href, title, text) => {
+    renderer.image = ({ href, title, text }) => {
       // Convert relative GitHub paths to raw URLs
-      if (href && href.startsWith("/") && owner && repo) {
-        href = `https://raw.githubusercontent.com/${owner}/${repo}/main${href}`
+      let imageUrl = href || ""
+      if (imageUrl && typeof imageUrl === "string" && imageUrl.startsWith("/") && owner && repo) {
+        imageUrl = `https://raw.githubusercontent.com/${owner}/${repo}/main${imageUrl}`
       }
 
       const titleAttr = title ? ` title="${title}"` : ""
-      return `<img src="${href}" alt="${text}"${titleAttr} />`
+      return `<img src="${imageUrl}" alt="${text || ""}"${titleAttr} />`
     }
 
     marked.setOptions({
