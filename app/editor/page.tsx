@@ -322,7 +322,7 @@ export default function EditorPage() {
                   <div className="rounded-lg border bg-card p-6">
                     <h1 className="mb-4 text-3xl font-bold">{title || "Untitled"}</h1>
                     {content ? (
-                      <MarkdownRenderer content={content} />
+                      <MarkdownRenderer content={content} owner={owner} repo={GitHubAPI.FIXED_REPO} />
                     ) : (
                       <p className="text-muted-foreground">Start writing to see preview...</p>
                     )}

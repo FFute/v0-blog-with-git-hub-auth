@@ -46,39 +46,32 @@ export default function PostPage() {
         const repo = GitHubAPI.FIXED_REPO
         const slug = params.slug as string
 
-        console.log("[v0] Loading post:", { owner, repo, slug })
-
         let filePath = ""
         let fileFound = false
 
         const blogFiles = await api.getRepoContents(owner, repo, "blog", true)
-        console.log("[v0] Blog files:", blogFiles)
 
         if (blogFiles && Array.isArray(blogFiles)) {
           const file = blogFiles.find((f: any) => f.name === `${slug}.md` || f.name === `${slug}.mdx`)
           if (file) {
             filePath = file.path
             fileFound = true
-            console.log("[v0] Found in blog folder:", filePath)
           }
         }
 
         if (!fileFound) {
           const postsFiles = await api.getRepoContents(owner, repo, "posts", true)
-          console.log("[v0] Posts files:", postsFiles)
 
           if (postsFiles && Array.isArray(postsFiles)) {
             const file = postsFiles.find((f: any) => f.name === `${slug}.md` || f.name === `${slug}.mdx`)
             if (file) {
               filePath = file.path
               fileFound = true
-              console.log("[v0] Found in posts folder:", filePath)
             }
           }
         }
 
         if (!fileFound) {
-          console.log("[v0] Post not found, slug searched:", slug)
           setError(
             `Post "${slug}" not found. If you just created this post, please wait a few seconds and refresh the page.`,
           )
@@ -94,9 +87,8 @@ export default function PostPage() {
           date: frontmatter.date || new Date().toISOString(),
           content: body,
         })
-        console.log("[v0] Post loaded successfully")
       } catch (err) {
-        console.error("[v0] Error loading post:", err)
+        console.error("Error loading post:", err)
         setError("Failed to load post. Please try refreshing the page.")
       } finally {
         setLoading(false)
@@ -104,7 +96,7 @@ export default function PostPage() {
     }
 
     loadData()
-  }, [params.slug]) // Only depend on slug, user is loaded internally
+  }, [params.slug])
 
   if (!user) {
     return (
@@ -172,7 +164,7 @@ export default function PostPage() {
                 </div>
               </header>
 
-              <MarkdownRenderer content={post.content} />
+              <MarkdownRenderer content={post.content} owner={user.login} repo={GitHubAPI.FIXED_REPO} />
             </article>
           )}
         </div>
