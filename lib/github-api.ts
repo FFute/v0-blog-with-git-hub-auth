@@ -118,6 +118,21 @@ export class GitHubAPI {
       return false
     }
   }
+
+  async uploadImage(owner: string, repo: string, fileName: string, imageData: string): Promise<string> {
+    const path = `images/${fileName}`
+    const message = `Upload image: ${fileName}`
+
+    await this.request(`/repos/${owner}/${repo}/contents/${path}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        message,
+        content: imageData, // Already base64 encoded
+      }),
+    })
+
+    return path
+  }
 }
 
 export function parseMarkdownFrontmatter(content: string): {

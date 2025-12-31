@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useEffect, useState, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { BlogHeader } from "@/components/blog-header"
@@ -25,6 +27,7 @@ export default function EditorPage() {
   const [content, setContent] = useState("")
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [originalSlug, setOriginalSlug] = useState("")
   const [fileSha, setFileSha] = useState("")
@@ -167,6 +170,76 @@ export default function EditorPage() {
     }
   }
 
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+
+      if (item.type.indexOf("image") !== -1) {
+        e.preventDefault()
+
+        const blob = item.getAsFile()
+        if (!blob) continue
+
+        setUploadingImage(true)
+
+        try {
+          const reader = new FileReader()
+          reader.onload = async (event) => {
+            try {
+              const base64Data = (event.target?.result as string)?.split(",")[1]
+              if (!base64Data) throw new Error("Failed to read image")
+
+              const api = new GitHubAPI()
+              const timestamp = Date.now()
+              const extension = blob.type.split("/")[1] || "png"
+              const fileName = `paste-${timestamp}.${extension}`
+
+              const imagePath = await api.uploadImage(owner, GitHubAPI.FIXED_REPO, fileName, base64Data)
+
+              const textarea = e.target as HTMLTextAreaElement
+              const cursorPosition = textarea.selectionStart
+              const imageMarkdown = `![image](/${imagePath})`
+
+              const newContent = content.slice(0, cursorPosition) + imageMarkdown + content.slice(cursorPosition)
+
+              setContent(newContent)
+
+              toast({
+                title: "Image uploaded",
+                description: "Image has been uploaded successfully",
+              })
+
+              setTimeout(() => {
+                textarea.focus()
+                const newPosition = cursorPosition + imageMarkdown.length
+                textarea.setSelectionRange(newPosition, newPosition)
+              }, 0)
+            } catch (err) {
+              console.error("Error uploading image:", err)
+              toast({
+                title: "Upload failed",
+                description: "Failed to upload image. Please try again.",
+                variant: "destructive",
+              })
+            } finally {
+              setUploadingImage(false)
+            }
+          }
+
+          reader.readAsDataURL(blob)
+        } catch (err) {
+          console.error("Error processing image:", err)
+          setUploadingImage(false)
+        }
+
+        break
+      }
+    }
+  }
+
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
@@ -216,12 +289,22 @@ export default function EditorPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="content">Content (Markdown)</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="content">Content (Markdown)</Label>
+                  {uploadingImage && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Loader2 className="size-3 animate-spin" />
+                      Uploading image...
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">Tip: You can paste images directly (Ctrl/Cmd+V)</p>
                 <Textarea
                   id="content"
                   placeholder="Write your post in Markdown..."
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
+                  onPaste={handlePaste}
                   className="min-h-[500px] font-mono text-sm"
                 />
               </div>
